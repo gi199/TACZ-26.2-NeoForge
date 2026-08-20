@@ -1,0 +1,210 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+// 设置日期格式，用于填充快照版版本号
+SimpleDateFormat FORMAT = new SimpleDateFormat("MMdd-HHmmss")
+FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = "1.1.8-hotfix"
+// 版本号，正式发布需要修改这一行
+//version = FORMAT.format(new Date())
+group = "com.tacz"
+base { archivesName = "tacz-26.1" }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+neoForge {
+    version = "26.1.0.19-beta"
+
+    validateAccessTransformers = true
+
+    accessTransformers {
+        file 'src/main/resources/META-INF/accesstransformer.cfg'
+    }
+    mods {
+        tacz {
+            sourceSet sourceSets.main
+        }
+    }
+    runs {
+        client {
+            client()
+            sourceSet = sourceSets.main
+            loadedMods = [mods.tacz]
+
+            jvmArgument '-XX:+AllowEnhancedClassRedefinition'
+            jvmArgument '-Xmx4096M'
+            jvmArgument '-Xms4096M'
+            gameDirectory = file('run/client_a')
+            systemProperty 'neoforge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            systemProperty 'neoforge.logging.console.level', 'debug'
+            systemProperty 'mixin.env.remapRefMap', 'true'
+            systemProperty 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+        }
+
+        client2 {
+            client()
+            sourceSet = sourceSets.main
+            loadedMods = [mods.tacz]
+
+            jvmArgument '-XX:+AllowEnhancedClassRedefinition'
+            jvmArgument '-Xmx4096M'
+            jvmArgument '-Xms4096M'
+            gameDirectory = file('run/client_b')
+            programArgument '--username'
+            programArgument 'mayday_memory'
+            systemProperty 'neoforge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            systemProperty 'neoforge.logging.console.level', 'debug'
+            systemProperty 'mixin.env.remapRefMap', 'true'
+            systemProperty 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+        }
+
+        server {
+            server()
+            sourceSet = sourceSets.main
+            loadedMods = [mods.tacz]
+
+            gameDirectory = file('run/server')
+            systemProperty 'mixin.env.disableRefMap', 'true'
+            systemProperty 'neoforge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            systemProperty 'neoforge.logging.console.level', 'debug'
+            systemProperty 'mixin.env.remapRefMap', 'true'
+            systemProperty 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+        }
+
+        serverData {
+            serverData()
+            sourceSet = sourceSets.main
+            loadedMods = [mods.tacz]
+
+            gameDirectory = file('run/data')
+            systemProperty 'mixin.env.disableRefMap', 'true'
+            systemProperty 'neoforge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            systemProperty 'neoforge.logging.console.level', 'debug'
+            programArgument '--mod'
+            programArgument 'tacz'
+            programArgument '--all'
+            programArgument '--output'
+            programArgument file('src/generated/resources/').absolutePath
+        }
+    }
+}
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    mavenLocal()
+    gradlePluginPortal()
+    maven {
+        name = 'BMCLAPI'
+        url = "https://bmclapi2.bangbang93.com/maven"
+    }
+    maven {
+        name = 'NeoForge'
+        url = 'https://maven.neoforged.net/releases'
+    }
+    maven {
+        name = "SpongePowered Mixin Maven"
+        url = "https://repo.spongepowered.org/repository/maven-public/"
+    }
+    maven {
+        url = "https://maven.aliyun.com/repository/public/"
+    }
+    maven {
+        url = "https://maven.aliyun.com/repository/central/"
+    }
+    maven {
+        name = "Jared's maven"
+        url = "https://maven.blamejared.com/"
+    }
+    maven {
+        name = "Mod Maven"
+        url = "https://modmaven.k-4u.nl"
+    }
+    maven {
+        url = "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    maven { url = "https://maven.shedaniel.me/" }
+    maven { url = "https://dvs1.progwml6.com/files/maven/" }
+    maven { url = "https://modmaven.dev" }
+    maven {
+        url = "https://maven.architectury.dev"
+    }
+    maven {
+        url = "https://maven.latvian.dev/releases"
+    }
+    maven {
+        url = 'https://jitpack.io'
+    }
+    maven {
+        name = "KosmX's maven"
+        url = 'https://maven.kosmx.dev/'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    // simplebedrockmodel
+    jarJar("com.github.mcmodderanchor:simplebedrockmodel:[2.2.2,)")
+
+    compileOnly("com.maydaymemory:mae:1.1.4") {
+        exclude (group 'com.google.code.findbugs', module 'jsr305')
+        exclude (group 'com.google.code.gson', module 'gson')
+        exclude (group='it.unimi.dsi', module 'fastutil')
+        exclude (group='org.joml', module: 'joml')
+    }
+    // 填写时一定要注意选择版本的CurseMaven ID，不能随便写版本号
+    compileOnly("curse.maven:jei-238222:${jei_verid}")
+    implementation("curse.maven:framework-549225:8403587")
+    compileOnly("curse.maven:controllable-317269:8403602")
+    implementation("curse.maven:shoulder-surfing-reloaded-243190:8445037")
+    implementation("curse.maven:cloth-config-348521:${cloth_config}")
+    compileOnly("curse.maven:sodium-394468:${sodium}")
+    compileOnly('libs:oculus_legacy:mc1.20.1-1.6.13')
+    compileOnly('libs:oculus:mc1.20.1-1.7.0')
+    runtimeOnly("curse.maven:carry-on-274259:${carry_on_id}")
+    implementation("dev.kosmx.player-anim:player-animation-lib-forge:${player_animation_lib}")
+    runtimeOnly("curse.maven:sound-physics-remastered-535489:7032235")
+    compileOnly("dev.latvian.mods:kubejs-forge:${kubejs_version}")
+    compileOnly("dev.latvian.mods:rhino-forge:${rhino_version}")
+    compileOnly("dev.architectury:architectury-forge:${architectury_version}")
+    compileOnly("curse.maven:accelerated-rendering-1314021:7342975")
+
+    // MixinExtras
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
+    jarJar("io.github.llamalad7:mixinextras-forge:[0.3.6,)")
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+jar {
+    // 打包时，给 manifest 文件写入一些有用信息
+    // 这些信息会被游戏调用，从而显示成模组的名称和版本信息
+    manifest {
+        attributes([
+                "Implementation-Title"  : project.name,
+                "Implementation-Version": project.version,
+                "MixinConfigs": "tacz.mixins.json, tacz.compat.acceleratedrendering.mixins.json"
+        ])
+    }
+}
+
+java {
+    // 编译源码文件，方便发布 maven
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
